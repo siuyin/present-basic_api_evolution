@@ -1,0 +1,175 @@
+# Basic API evolution
+with Go
+23 Dec 2020
+
+Loh Siu Yin
+Engineering Manager
+Xendit
+siuyin@xendit.co
+
+## What is wrong with this code?
+.play -edit cmd/monolith/main.go
+
+Shouldn't it use functions?
+
+## Sum function
+.play -edit cmd/sum-func/main.go
+
+Shouldn't sum be in a library?
+
+## arith library (package)
+.code cmd/sum-lib/main.go
+
+Let's run the code:
+```
+go run cmd/sum-lib/main.go
+```
+
+## arith package code
+.code arith/arith.go /10 OMIT/,/20 OMIT/
+
+Sum is a public or exported function.
+
+Public functions should have a well documented
+interface / contract. 
+
+Here the contract is we call Sum with 2 integers
+and we expect to get an integer in return.
+
+## Requirements evolve, we now need to sum 3 numbers.
+
+## Option: Function overloading (DO NOT DO THIS!)
+Some languages like java allow function overloading like this:
+
+```
+public class Hello {
+    public static int sum(int a, int b) {
+        return a+b;
+    }
+    public static int sum(int a, int b, int c) {
+        return a+b+c;
+    }
+     public static void main(String []args){
+        System.out.print("sum 2+3 = ");
+        System.out.println(sum(2,3));
+        
+        System.out.print("sum 2+3+4 =");
+        System.out.println(sum(2,3,4));
+     }
+}
+```
+
+When run:
+```
+$javac Hello.java
+$java -Xmx128M -Xms16M Hello
+sum 2+3 = 5
+sum 2+3+4 =9
+```
+
+## Go does not allow function overloading
+
+Why?
+
+The original contract to call sum with only two integer parameters
+is broken when you call it with three integer parameters.
+
+What can we do to evolve the Sum API in Go?
+
+## Make a new contract: Sum3
+
+.code cmd/sum3-lib/main.go
+
+Let's run it:
+```
+go run cmd/sum3-lib/main.go
+```
+
+## What is wrong with making a new contract?
+
+Sum3 works just fine!
+
+How about Sum4 to add 4 numbers?
+
+How about Sum3IntFloat to add 3 integers and 1 floating point number?
+
+As needs grow, you get an explosion of SumXXX functions / contracts to maintain.
+
+If SumXXX was a REST API (http/json), then you would have an explosion of endpoints to maintain.
+
+## How about this contract?
+
+`// SumGP is a general purpose adding function.`  
+SumGP(x {something}) int 
+
+Where {something} could be "any one thing" say a structure like:
+```
+type ThreeNums struct {
+  a int
+  b int
+  c int
+}
+```
+
+Then we can implement: SumGP(x ThreeNums) int.
+
+But this gets us nowhwere!
+How about SumGP(x FourNums) int ?
+
+## Removing Go's safety belt: interface{}
+
+In Go, `interface{}` (pronounced empty interface)  means "any one thing".
+
+`SumGP takes "any one thing"/empty interface and returns an int`  
+SumGP(x interface{}) int
+
+Now you can provide SumGP with ThreeNums, FourNums or any other type
+you care to define.
+
+However it is now SumGP's responsibility to check that it can handle the
+types that are passed to it.
+
+## SumGP in Go
+.code arith/arith.go /30 OMIT/,/40 OMIT/
+
+## Schema Versioning
+This is the main idea behind schema versioning.
+
+A schema is just a description of the "thing" you pass to the API.
+Like ThreeNums or FourNums
+
+You can define a GenericThing that can evolve with:
+```
+type GenericThing struct {
+  Version int
+  X interface{}
+}
+```
+
+## Generic Thing
+GenericThing Version 1 can have X as a ThreeNums.
+
+GenericThing Version 2 can have X as a FourNums etc.
+
+However now it is GenericThing maintainer's responsibility to document and
+publish what X can be.
+
+And `SumGeneric(y GenericThing) int` to keep track of how to handle all the 
+y.Version and y.X
+
+## arith package with SumGeneric
+
+.code arith/arith.go /40 OMIT/,/50 OMIT/
+
+## SumGeneric in action
+
+.code cmd/sum-generic/main.go
+
+Let's run it:
+```
+go run cmd/sum-generic/main.go
+```
+
+## Presentation and code download
+
+.link https://github.com/siuyin/present-basic_api_evolution
