@@ -1,6 +1,8 @@
 # Comparing OpenAPI-generator and gRPC API code generators for Go
 The presentation is written in Go `present`.
 
+Main content is in present-basic_api_evolution.slide.
+
 ```
 docker run -it --name present -v godata:/home/siuyin/go -p 3999:3999 siuyin/go:dev
 go get golang.org/x/tools/cmd/present
