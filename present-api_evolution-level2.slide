@@ -1,0 +1,183 @@
+# API evolution: Level 2
+with Go
+24 Dec 2020
+
+Loh Siu Yin
+Engineering Manager
+Xendit
+siuyin@xendit.co
+
+## Why I wrote this presentation
+It was Christmas eve and I was watching a
+'relaxing' youtube video on Clean Code by Robert C. Martin
+(better known as "Uncle Bob").
+
+I was watching the 
+[video](https://www.youtube.com/watch?v=7EmboKQH8lM&t=4573s)
+at time index 1:16:13 to 1:26:28
+where Uncle Bob claims switch statements are bad
+
+and ...
+
+## arith package at end of Level 1 
+Look at where the arith package was at the end of
+my Level 1 presentation:
+
+.code arith/arith.go /40 OMIT/,/50 OMIT/
+
+## Open/Close principle violated
+I think Robert Martin claims that switch statements
+violate the principle that classes (or Go types) should be
+open for extension but closed to modifications.
+
+He talks about polymorphism and sub-classes.
+Go does not have sub-classes nor sub-types but it does
+have type [embedding](https://golang.org/doc/effective_go.html#embedding).
+See link below:
+
+.link https://golang.org/doc/effective_go.html#embedding
+
+
+To improve our Level 1 code, we first need to understand the concept of
+sub-classes (Go type embedding).
+
+I will also introduce Go's flavour of `interfaces`.
+
+## Go interfaces
+
+## Go Idiom: Pass in abstract type(s) to functions. Get out concrete type.
+
+Concrete type:
+
+```
+type ThreeNums struct {
+	A, B, C int
+}
+```
+
+It is 'concrete' or 'solid' because it is fully defined and implemented.
+
+Abstract type:
+
+```
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+```
+
+The above reads:  
+Reader is a public type (as it starts with a capital letter),  
+that is an interface which has one method...  
+Read that takes in p (a slice of bytes or byte array) and
+returns two values (a Go thing):  
+  n the number of bytes read and  
+  err if any error had occurred.
+
+## Abstract types are interfaces in Go
+Why is 
+
+```
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+```
+an abstract type?
+
+Because Reader does not define nor implement its Read method.
+It only 'wishes' to have a Read method.
+
+Now, any concrete type that comes along and provides a Read
+method will fulfil the Reader interface and satisfy its 'wish'.
+
+## Satisfying an interface
+
+```
+type mySillyReader struct {
+  myDat []byte
+}
+
+func (r mySillyReader) Read(dat []byte) (int, error) {
+  nRead := copy(r.myDat, dat)
+  return nRead, nil
+}
+```
+reads: 
+
+mySillyReader is a private type (as it starts with lower-case letter)
+that has one private property/member, myDat which is a slice of bytes/byte array.
+
+mySillyReader has a method named Read which takes a slice of bytes and returns
+two values, an int and an error.
+
+mySillyReader, a concrete type, satisfies the Reader interface.
+
+## Go type embedding
+
+## Go type embedding
+What do ThreeNums and FourNums have in common?
+
+.code arith/arith.go /30 OMIT/,/30.1 OMIT/
+
+For one, FourNums is an extension of ThreeNums.
+
+Because of the open/close principle, we should not go back and
+change ThreeNums. Instead let's add a new type `FourNumsEmb`
+which reads FourNums-embedded.
+
+## FourNumsEmb
+
+.code arith/arith.go /70 OMIT/,/80 OMIT/
+
+The above reads:
+
+Public type FourNumsEmb contains  
+a public member of type ThreeNums and  
+a public member named D of type int.
+
+## Improving our Level 1 SumGeneric function
+
+## Improving our Level 1 SumGeneric function
+
+.code arith/arith.go /40 OMIT/,/50 OMIT/
+
+
+## Introducing SumWithInterface
+
+.code arith/arith.go /60 OMIT/,/70 OMIT/
+
+Is that it?
+
+Of course not!
+
+We have to define the Sum-er abstract type and also
+make concrete types that satisfy it.
+
+## Additions to the arith package
+
+.code arith/arith.go /50 OMIT/,/60 OMIT/
+
+## Generated Go Doc of arith package
+
+.image img/arith-godoc.png
+
+## Using our new SumWithInterface function
+
+.code cmd/sum-intf/main.go
+
+Let's run it:
+```
+go run cmd/sum-intf/main.go
+```
+
+## How have we improved our code?
+1. We have put Go's safety belt back on. No more interface{} !
+1. Checks can now be done at compile time. If we try to pass in a data type
+ that does not have a Sum method. The Go compiler will complain.
+1. Our new SumWithInterface no longer violates the Open/Closed principle.
+ In other words, our new data types are backward-compatible with older
+ data types. FourNumsEmb is simply an extension of ThreeNums. ThreeNums itself
+ remains unchanged.
+
+## Presentation and code download
+
+.link https://github.com/siuyin/present-basic_api_evolution

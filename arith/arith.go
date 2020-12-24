@@ -28,6 +28,8 @@ type FourNums struct {
 	A, B, C, D int
 }
 
+// 30.1 OMIT
+
 // SumGP takes an empty interface x, sums its
 // contents and returns an int.
 func SumGP(x interface{}) int {
@@ -66,3 +68,33 @@ func SumGeneric(y GenericThing) int {
 }
 
 // 50 OMIT
+
+type Sumer interface { // read: sum-er, because it has a sum method.
+	Sum() int
+}
+
+// Sum is a ThreeNums method that sums its internal
+// data A,B and C and returns an int.
+func (t ThreeNums) Sum() int {
+	return t.A + t.B + t.C
+}
+
+// Sum is a FourNumsEmb method that sums its internal
+// data A,B,C and D and returns an int.
+func (f FourNumsEmb) Sum() int {
+	return f.A + f.B + f.C + f.D
+}
+
+// 60 OMIT
+func SumWithInterface(s Sumer) int {
+	return s.Sum()
+}
+
+// 70 OMIT
+// FourNumsEmb is the ThreeNums type extended to handle 4 integer inputs.
+type FourNumsEmb struct {
+	ThreeNums
+	D int
+}
+
+// 80 OMIT
